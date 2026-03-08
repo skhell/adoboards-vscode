@@ -1,0 +1,11 @@
+node_modules/
+dist/
+out/
+.adoboards/
+.env
+*.log
+*.vsix
+*.tgz
+.DS_Store
+.vscode-test/
+compliance/
