@@ -1,0 +1,112 @@
+{
+  "name": "adoboards-vscode",
+  "displayName": "DevOps Boards SCM for NPM CLI",
+  "description": "Source Control panel for adoboards NPM CLI",
+  "version": "0.1.0",
+  "publisher": "skhell",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  
+  "keywords": [
+    "azure devops",
+    "devops",
+    "azure boards",
+    "azure devops boards",
+    "adoboards",
+    "ado boards",
+    "scrum",
+    "cli",
+    "devops boards cli",
+    "devops cli",
+    "agile",
+    "ai"
+  ],
+  "icon": "resources/adoboards.png",
+  "activationEvents": [
+    "workspaceContains:.adoboards/config.json",
+    "onView:adoboards.panel"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "adoboards.status", "title": "adoboards: Status" },
+      { "command": "adoboards.addFile", "title": "adoboards: Stage File", "icon": "$(add)" },
+      { "command": "adoboards.addAll", "title": "adoboards: Stage All", "icon": "$(add)" },
+      { "command": "adoboards.unstageFile", "title": "adoboards: Unstage File", "icon": "$(remove)" },
+      { "command": "adoboards.push", "title": "adoboards: Push", "icon": "$(cloud-upload)" },
+      { "command": "adoboards.pull", "title": "adoboards: Pull", "icon": "$(cloud-download)" },
+      { "command": "adoboards.refresh", "title": "adoboards: Refresh", "icon": "$(refresh)" },
+      { "command": "adoboards.diff", "title": "adoboards: Diff" },
+      { "command": "adoboards.report", "title": "adoboards: Report" },
+      { "command": "adoboards.clone", "title": "adoboards: Clone" }
+    ],
+    "menus": {
+      "scm/title": [
+        { "command": "adoboards.push", "group": "navigation", "when": "scmProvider == adoboards" },
+        { "command": "adoboards.pull", "group": "navigation", "when": "scmProvider == adoboards" },
+        { "command": "adoboards.refresh", "group": "navigation", "when": "scmProvider == adoboards" }
+      ],
+      "scm/resourceGroup/context": [
+        { "command": "adoboards.addAll", "group": "inline", "when": "scmProvider == adoboards && scmResourceGroup == modified" },
+        { "command": "adoboards.addAll", "group": "inline", "when": "scmProvider == adoboards && scmResourceGroup == pending" }
+      ],
+      "scm/resourceState/context": [
+        { "command": "adoboards.addFile", "group": "inline", "when": "scmProvider == adoboards && scmResourceGroup == modified" },
+        { "command": "adoboards.addFile", "group": "inline", "when": "scmProvider == adoboards && scmResourceGroup == pending" },
+        { "command": "adoboards.unstageFile", "group": "inline", "when": "scmProvider == adoboards && scmResourceGroup == staged" }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adoboards",
+          "title": "adoboards",
+          "icon": "resources/dark/adoboards-dark-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "adoboards": [
+        {
+          "id": "adoboards.panel",
+          "name": "Work Items"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "adoboards.panel",
+        "contents": "[Clone Azure DevOps Project](command:adoboards.clone)\n\nThis extension requires the [adoboards](https://www.npmjs.com/package/adoboards) CLI. Once installed, select a folder where you cloned your board project or hit the cone button above\n\nThis will create the .adoboards/ folder and pull your work items as markdown files.",
+        "when": "!adoboards.active"
+      },
+      {
+        "view": "adoboards.panel",
+        "contents": "Use the Source Control panel to see your work item changes.\n[Open Source Control](command:workbench.view.scm)\n[Refresh](command:adoboards.refresh)",
+        "when": "adoboards.active"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.js",
+    "build:prod": "node esbuild.config.js --production",
+    "watch": "node esbuild.config.js --watch",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  }
+}
