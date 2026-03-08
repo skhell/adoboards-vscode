@@ -26,6 +26,10 @@
     "agile",
     "ai"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skhell/adoboards-vscode"
+  },
   "icon": "resources/adoboards.png",
   "activationEvents": [
     "workspaceContains:.adoboards/config.json",
