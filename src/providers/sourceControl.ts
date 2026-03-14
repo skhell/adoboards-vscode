@@ -52,8 +52,16 @@ export function createAdoboardsScm(
       } else if (item.frontmatter.id === 'pending') {
         status = 'pending';
       } else {
-        const ref = state.findRefByPath(item.relPath);
-        if (ref && isModified(item.frontmatter, ref.entry.fields)) {
+        // Find ref by path first, then by frontmatter id (moved files)
+        let ref = state.findRefByPath(item.relPath);
+        if (!ref && item.frontmatter.id != null && String(item.frontmatter.id) !== 'pending') {
+          const refs = state.readRefs();
+          const id = String(item.frontmatter.id);
+          if (refs[id]) {
+            ref = { id, entry: refs[id] };
+          }
+        }
+        if (ref && isModified(item.frontmatter, ref.entry.fields, ref.entry.hash, item.rawContent)) {
           status = 'modified';
         } else {
           status = 'clean';

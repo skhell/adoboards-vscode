@@ -23,8 +23,10 @@ export class RefDocumentProvider implements vscode.TextDocumentContentProvider {
     private state: AdoBoardsState
   ) {}
 
-  fireChange(uri: vscode.Uri): void {
-    this._onDidChange.fire(uri);
+  fireChange(uri?: vscode.Uri): void {
+    if (uri) {
+      this._onDidChange.fire(uri);
+    }
   }
 
   provideTextDocumentContent(uri: vscode.Uri): string {
@@ -33,7 +35,7 @@ export class RefDocumentProvider implements vscode.TextDocumentContentProvider {
 
     for (const [id, ref] of Object.entries(refs)) {
       if (ref.path === relPath) {
-        return reconstructMarkdown(id, ref.fields);
+        return reconstructMarkdown(id, ref);
       }
     }
 

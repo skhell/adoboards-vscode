@@ -6,7 +6,10 @@ import * as path from 'path';
 
 export interface RefEntry {
   path: string;
+  rev?: number;
+  hash?: string;
   fields: Record<string, any>;
+  parent?: number;
 }
 
 export interface RefsData {

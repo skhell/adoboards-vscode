@@ -2,9 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { AdoBoardsState } from '../core/state';
 import { ScmGroups } from './sourceControl';
-
 import { runInTerminal } from './terminal';
-
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -12,6 +10,9 @@ export function registerCommands(
   state: AdoBoardsState,
   scmGroups: ScmGroups
 ): void {
+  function refreshAll() {
+    return scmGroups.refresh();
+  }
   // Status
   context.subscriptions.push(
     vscode.commands.registerCommand('adoboards.status', () => {
@@ -19,20 +20,18 @@ export function registerCommands(
     })
   );
 
-  // Stage file (inline action on SCM resource)
+  // Stage file from SCM panel
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'adoboards.addFile',
-      (resource: vscode.SourceControlResourceState) => {
-        if (resource?.resourceUri) {
-          const relPath = path.relative(rootUri.fsPath, resource.resourceUri.fsPath);
-          state.stageFile(relPath);
-        }
+      (arg: vscode.SourceControlResourceState) => {
+        const relPath = path.relative(rootUri.fsPath, arg.resourceUri.fsPath);
+        if (relPath) { state.stageFile(relPath); refreshAll(); }
       }
     )
   );
 
-  // Stage all (inline action on resource group)
+  // Stage all
   context.subscriptions.push(
     vscode.commands.registerCommand('adoboards.addAll', () => {
       const allResources = [
@@ -43,20 +42,39 @@ export function registerCommands(
         const relPath = path.relative(rootUri.fsPath, resource.resourceUri.fsPath);
         state.stageFile(relPath);
       }
+      refreshAll();
     })
   );
 
-  // Unstage file (inline action on staged resource)
+  // Unstage file from SCM panel
   context.subscriptions.push(
     vscode.commands.registerCommand(
       'adoboards.unstageFile',
-      (resource: vscode.SourceControlResourceState) => {
-        if (resource?.resourceUri) {
-          const relPath = path.relative(rootUri.fsPath, resource.resourceUri.fsPath);
-          state.unstageFile(relPath);
-        }
+      (arg: vscode.SourceControlResourceState) => {
+        const relPath = path.relative(rootUri.fsPath, arg.resourceUri.fsPath);
+        if (relPath) { state.unstageFile(relPath); refreshAll(); }
       }
     )
+  );
+
+  // Open diff from active editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand('adoboards.diff', () => {
+      let relPath: string | undefined;
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) { return; }
+      relPath = path.relative(rootUri.fsPath, editor.document.uri.fsPath);
+      if (!relPath?.startsWith('areas/') || !relPath.endsWith('.md')) {
+        vscode.window.showWarningMessage('Not an adoboards work item file.');
+        return;
+      }
+      vscode.commands.executeCommand(
+        'vscode.diff',
+        vscode.Uri.parse(`adoboards-ref:${relPath}`),
+        vscode.Uri.joinPath(rootUri, relPath),
+        `${path.basename(relPath)} (adoboards diff)`
+      );
+    })
   );
 
   // Push
@@ -76,28 +94,7 @@ export function registerCommands(
   // Refresh
   context.subscriptions.push(
     vscode.commands.registerCommand('adoboards.refresh', () => {
-      scmGroups.refresh();
-    })
-  );
-
-  // Diff (open for current file)
-  context.subscriptions.push(
-    vscode.commands.registerCommand('adoboards.diff', () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-      const relPath = path.relative(rootUri.fsPath, editor.document.uri.fsPath);
-      if (!relPath.startsWith('areas/') || !relPath.endsWith('.md')) {
-        vscode.window.showWarningMessage('Not an adoboards work item file.');
-        return;
-      }
-      vscode.commands.executeCommand(
-        'vscode.diff',
-        vscode.Uri.parse(`adoboards-ref:${relPath}`),
-        editor.document.uri,
-        `${path.basename(relPath)} (adoboards diff)`
-      );
+      refreshAll();
     })
   );
 

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import { AdoBoardsState } from '../core/state';
-import { isModified } from '../core/diff';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import matter from 'gray-matter';
-import { readFileSync } from 'fs';
+import { isModified } from '../core/diff';
 
 export class AdoboardsDecorationProvider implements vscode.FileDecorationProvider {
-  private _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[]>();
+  private _onDidChangeFileDecorations = new vscode.EventEmitter<undefined | vscode.Uri | vscode.Uri[]>();
   readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
   constructor(
@@ -14,12 +14,9 @@ export class AdoboardsDecorationProvider implements vscode.FileDecorationProvide
     private state: AdoBoardsState
   ) {}
 
-  fireChange(uris?: vscode.Uri[]): void {
-    if (uris) {
-      this._onDidChangeFileDecorations.fire(uris);
-    } else {
-      this._onDidChangeFileDecorations.fire(this.rootUri);
-    }
+  fireChange(): void {
+    // Fire undefined -> VS Code re-requests decoration for ALL files
+    this._onDidChangeFileDecorations.fire(undefined);
   }
 
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
@@ -58,9 +55,10 @@ export class AdoboardsDecorationProvider implements vscode.FileDecorationProvide
 
     // Parse frontmatter to check pending / modified
     let data: Record<string, any>;
+    let rawContent: string;
     try {
-      const raw = readFileSync(uri.fsPath, 'utf-8');
-      const parsed = matter(raw);
+      rawContent = readFileSync(uri.fsPath, 'utf-8');
+      const parsed = matter(rawContent);
       data = parsed.data;
     } catch {
       return undefined;
@@ -70,23 +68,37 @@ export class AdoboardsDecorationProvider implements vscode.FileDecorationProvide
       return undefined;
     }
 
-    // Pending
+    // Pending (new, not yet pushed to ADO)
     if (data.id === 'pending') {
       return new vscode.FileDecoration(
         'P',
-        'Pending',
+        'Pending (new)',
         new vscode.ThemeColor('gitDecoration.untrackedResourceForeground')
       );
     }
 
-    // Modified
-    const ref = this.state.findRefByPath(relPath);
-    if (ref && isModified(data as any, ref.entry.fields)) {
-      return new vscode.FileDecoration(
-        'M',
-        'Modified',
-        new vscode.ThemeColor('gitDecoration.modifiedResourceForeground')
-      );
+    // Modified - use hash if available, fall back to semantic
+    const refs = this.state.readRefs();
+    let ref = this.state.findRefByPath(relPath);
+    if (!ref && data.id != null && data.id !== 'pending') {
+      const id = String(data.id);
+      if (refs[id]) { ref = { id, entry: refs[id] }; }
+    }
+    if (ref) {
+      let modified: boolean;
+      if (ref.entry.hash) {
+        const currentHash = crypto.createHash('sha256').update(rawContent!).digest('hex');
+        modified = currentHash !== ref.entry.hash;
+      } else {
+        modified = isModified(data as any, ref.entry.fields);
+      }
+      if (modified) {
+        return new vscode.FileDecoration(
+          'M',
+          'Modified',
+          new vscode.ThemeColor('gitDecoration.modifiedResourceForeground')
+        );
+      }
     }
 
     return undefined;
@@ -96,3 +108,4 @@ export class AdoboardsDecorationProvider implements vscode.FileDecorationProvide
     this._onDidChangeFileDecorations.dispose();
   }
 }
+

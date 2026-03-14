@@ -9,6 +9,7 @@ export interface ScannedItem {
   uri: vscode.Uri;
   frontmatter: WorkItemFrontmatter;
   body: string;
+  rawContent: string;
   hasRemoteConflict: boolean;
 }
 
@@ -41,6 +42,7 @@ export async function scanWorkItems(rootUri: vscode.Uri): Promise<ScannedItem[]>
       uri: fileUri,
       frontmatter: parsed.frontmatter,
       body: parsed.body,
+      rawContent: parsed.rawContent,
       hasRemoteConflict,
     });
   }
@@ -50,12 +52,12 @@ export async function scanWorkItems(rootUri: vscode.Uri): Promise<ScannedItem[]>
 
 function parseWorkItemFile(
   filePath: string
-): { frontmatter: WorkItemFrontmatter; body: string } | null {
+): { frontmatter: WorkItemFrontmatter; body: string; rawContent: string } | null {
   try {
     const raw = readFileSync(filePath, 'utf-8');
     const { data, content } = matter(raw);
 
-    // Must have at least id and type to be a valid work item
+    // Must have at least type to be a valid work item
     if (!data.type) {
       return null;
     }
@@ -63,6 +65,7 @@ function parseWorkItemFile(
     return {
       frontmatter: data as WorkItemFrontmatter,
       body: content.trim(),
+      rawContent: raw,
     };
   } catch {
     return null;
